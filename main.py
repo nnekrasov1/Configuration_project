@@ -17,11 +17,11 @@ def load_vfs_from_json_path(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        # базовая проверка корректности структуры
+
         if not isinstance(data, dict) or data.get("type") != "dir":
             raise ValueError("Неверный формат VFS: корень должен быть dir")
         vfs_root = data
-        return None  # нет ошибок
+        return None
     except FileNotFoundError:
         return f"Ошибка: файл VFS '{path}' не найден"
     except json.JSONDecodeError as e:
@@ -74,7 +74,7 @@ def resolve_path_to_components(path_str):
         return comps
     else:
         comps = list(vfs_cwd) + [c for c in p.split("/") if c != ""]
-        # обрабатываем "." и ".."
+
         res = []
         for c in comps:
             if c == ".":
@@ -99,7 +99,6 @@ def vfs_ls(path_str=None):
 
 def vfs_cd(path_str):
     if path_str is None or path_str.strip() == "":
-        # возврат в root
         set_cwd([])
         return None
     comps = resolve_path_to_components(path_str)
@@ -173,6 +172,7 @@ def process_command(command, from_script=False):
         if err:
             return err
         return "\n".join(items) if items else ""
+
     elif cmd == "cd":
         if len(args) > 1:
             return "Ошибка: слишком много аргументов для 'cd'"
@@ -183,8 +183,10 @@ def process_command(command, from_script=False):
         else:
             err = vfs_cd(args[0])
             return vfs_pwd() if err is None else err
+
     elif cmd == "pwd":
         return vfs_pwd()
+
     elif cmd == "cat":
         if len(args) != 1:
             return "Использование: cat <путь>"
@@ -192,15 +194,61 @@ def process_command(command, from_script=False):
         if err:
             return err
         return content
+
     elif cmd == "vfsinfo":
-        # показать краткую информацию: количество файлов/папок в корне и текущий путь
+
         root_entries = vfs_root.get("entries", {})
         cnt_files = sum(1 for n in root_entries.values() if n["type"] == "file")
         cnt_dirs = sum(1 for n in root_entries.values() if n["type"] == "dir")
         return f"VFS loaded. root: {len(root_entries)} entries ({cnt_dirs} dirs, {cnt_files} files). CWD: {vfs_pwd()}"
+
     elif cmd == "help":
         return ("Поддерживаемые команды (VFS): ls [путь], cd [путь], pwd, cat <путь>, vfsinfo, exit\n"
                 "Примеры: ls /, ls docs, cd docs, cat readme.txt")
+
+    elif cmd == "wc":
+        if len(args) != 1:
+            return "Использование: wc <файл>"
+        content, err = vfs_cat(args[0])
+        if err:
+            return err
+        lines = content.splitlines()
+        words = sum(len(l.split()) for l in lines)
+        chars = len(content)
+        return f"{len(lines)} {words} {chars}"
+
+    elif cmd == "rev":
+        if len(args) != 1:
+            return "Использование: rev <файл>"
+        content, err = vfs_cat(args[0])
+        if err:
+            return err
+        return "\n".join(line[::-1] for line in content.splitlines())
+
+    elif cmd == "du":
+        path = args[0] if args else None
+        comps = resolve_path_to_components(path) if path else vfs_cwd
+        node = get_node_by_path(comps)
+        if node is None:
+            return f"Ошибка: путь '{path}' не найден"
+
+        def size_of(node):
+            if node["type"] == "file":
+                if "content" in node:
+                    return len(node["content"].encode("utf-8"))
+                elif "content_b64" in node:
+                    import base64
+                    try:
+                        return len(base64.b64decode(node["content_b64"]))
+                    except:
+                        return 0
+                else:
+                    return 0
+            elif node["type"] == "dir":
+                return sum(size_of(n) for n in node.get("entries", {}).values())
+            return 0
+
+        return f"{size_of(node)} bytes"
     elif cmd == "exit":
         if from_script:
             return "EXIT_SCRIPT"

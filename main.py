@@ -5,19 +5,18 @@ import shlex
 import json
 import base64
 
+# Глобальные переменные
 vfs_root = None
 vfs_cwd = []
 entry = None
 output_text = None
 root = None
 
-
 def load_vfs_from_json_path(path):
     global vfs_root
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-
         if not isinstance(data, dict) or data.get("type") != "dir":
             raise ValueError("Неверный формат VFS: корень должен быть dir")
         vfs_root = data
@@ -29,14 +28,12 @@ def load_vfs_from_json_path(path):
     except Exception as e:
         return f"Ошибка загрузки VFS: {e}"
 
-
 def create_default_vfs():
     global vfs_root
     vfs_root = {
         "type": "dir",
         "entries": {
-            "readme.txt": {"type": "file",
-                           "content": "Добро пожаловать в VFS (по умолчанию)\nИспользуйте команды: ls, cd, pwd, cat, exit, vfsinfo"},
+            "readme.txt": {"type": "file", "content": "Добро пожаловать в VFS (по умолчанию)\nИспользуйте команды: ls, cd, pwd, cat, exit, vfsinfo"},
             "docs": {
                 "type": "dir",
                 "entries": {
@@ -52,8 +49,11 @@ def create_default_vfs():
         }
     }
 
-
 def get_node_by_path(path_components):
+    """
+    Возвращает node для path_components (список имен).
+    Если не найден — возвращает None.
+    """
     node = vfs_root
     for comp in path_components:
         if node["type"] != "dir":
@@ -64,7 +64,6 @@ def get_node_by_path(path_components):
         node = entries[comp]
     return node
 
-
 def resolve_path_to_components(path_str):
     if not path_str or path_str.strip() == "":
         return list(vfs_cwd)
@@ -74,7 +73,6 @@ def resolve_path_to_components(path_str):
         return comps
     else:
         comps = list(vfs_cwd) + [c for c in p.split("/") if c != ""]
-
         res = []
         for c in comps:
             if c == ".":
@@ -86,7 +84,6 @@ def resolve_path_to_components(path_str):
                 res.append(c)
         return res
 
-
 def vfs_ls(path_str=None):
     comps = resolve_path_to_components(path_str) if path_str is not None else list(vfs_cwd)
     node = get_node_by_path(comps)
@@ -95,7 +92,6 @@ def vfs_ls(path_str=None):
     if node["type"] != "dir":
         return None, "Ошибка: путь не является директорией"
     return sorted(list(node.get("entries", {}).keys())), None
-
 
 def vfs_cd(path_str):
     if path_str is None or path_str.strip() == "":
@@ -110,15 +106,12 @@ def vfs_cd(path_str):
     set_cwd(comps)
     return None
 
-
 def set_cwd(comps):
     global vfs_cwd
     vfs_cwd = list(comps)
 
-
 def vfs_pwd():
     return "/" + "/".join(vfs_cwd) if vfs_cwd else "/"
-
 
 def vfs_cat(path_str):
     comps = resolve_path_to_components(path_str)
@@ -127,14 +120,12 @@ def vfs_cat(path_str):
         return None, f"Ошибка: файл '{path_str}' не найден"
     if node["type"] != "file":
         return None, f"Ошибка: '{path_str}' не является файлом"
-
     if "content" in node:
         return node["content"], None
     elif "content_b64" in node:
         b64 = node["content_b64"]
         try:
             raw = base64.b64decode(b64)
-
             try:
                 text = raw.decode("utf-8")
                 return text, None
@@ -152,7 +143,6 @@ def append_output(text):
     output_text.insert(END, text + "\n")
     output_text.see(END)
     output_text.config(state=DISABLED)
-
 
 def process_command(command, from_script=False):
     try:
@@ -177,7 +167,6 @@ def process_command(command, from_script=False):
         if len(args) > 1:
             return "Ошибка: слишком много аргументов для 'cd'"
         elif len(args) == 0:
-
             err = vfs_cd(None)
             return vfs_pwd() if err is None else err
         else:
@@ -196,15 +185,10 @@ def process_command(command, from_script=False):
         return content
 
     elif cmd == "vfsinfo":
-
         root_entries = vfs_root.get("entries", {})
         cnt_files = sum(1 for n in root_entries.values() if n["type"] == "file")
         cnt_dirs = sum(1 for n in root_entries.values() if n["type"] == "dir")
         return f"VFS loaded. root: {len(root_entries)} entries ({cnt_dirs} dirs, {cnt_files} files). CWD: {vfs_pwd()}"
-
-    elif cmd == "help":
-        return ("Поддерживаемые команды (VFS): ls [путь], cd [путь], pwd, cat <путь>, vfsinfo, exit\n"
-                "Примеры: ls /, ls docs, cd docs, cat readme.txt")
 
     elif cmd == "wc":
         if len(args) != 1:
@@ -231,7 +215,6 @@ def process_command(command, from_script=False):
         node = get_node_by_path(comps)
         if node is None:
             return f"Ошибка: путь '{path}' не найден"
-
         def size_of(node):
             if node["type"] == "file":
                 if "content" in node:
@@ -247,16 +230,47 @@ def process_command(command, from_script=False):
             elif node["type"] == "dir":
                 return sum(size_of(n) for n in node.get("entries", {}).values())
             return 0
-
         return f"{size_of(node)} bytes"
-    elif cmd == "exit":
-        if from_script:
-            return "EXIT_SCRIPT"
+
+    elif cmd == "touch":
+        if len(args) != 1:
+            return "Использование: touch <файл>"
+        comps = resolve_path_to_components(args[0])
+        if not comps:
+            return "Ошибка: некорректное имя файла"
+        fname = comps[-1]
+        parent = get_node_by_path(comps[:-1]) if len(comps) > 1 else vfs_root
+        if parent is None or parent["type"] != "dir":
+            return f"Ошибка: каталог для файла '{args[0]}' не найден"
+        if fname in parent["entries"]:
+            node = parent["entries"][fname]
+            if node["type"] == "file":
+                node["content"] = ""
+            else:
+                return f"Ошибка: '{args[0]}' — это каталог"
         else:
-            root.quit()
-            return ""  # not reached usually
+            parent["entries"][fname] = {"type": "file", "content": ""}
+        return f"Файл '{args[0]}' создан"
+
+    elif cmd == "help":
+        return (
+            "Доступные команды:\n"
+            "  ls [путь]        – показать содержимое каталога\n"
+            "  cd <путь>        – сменить каталог\n"
+            "  pwd              – показать текущий путь\n"
+            "  cat <файл>       – вывести содержимое файла\n"
+            "  wc <файл>        – подсчитать строки, слова, символы\n"
+            "  rev <файл>       – вывести содержимое файла наоборот\n"
+            "  du [путь]        – показать размер файла/каталога\n"
+            "  touch <файл>     – создать пустой файл\n"
+            "  help             – показать список команд\n"
+            "  exit             – выйти из эмулятора"
+        )
+
+    elif cmd == "exit":
+        root.quit()
     else:
-        return f"'{cmd}' не является внутренней командой VFS. Введите help."
+        return f"'{cmd}' не является внутренней или внешней командой VFS. Для получения справки по доступным командам, введите help."
 
 
 def run_startup_script(script_path):
@@ -290,7 +304,6 @@ def on_enter(event):
     append_output(str(out))
     entry.delete(0, END)
 
-
 def main():
     global entry, output_text, root
 
@@ -298,16 +311,15 @@ def main():
     vfs_path = None
     script_path = None
     if len(args) >= 1:
-
         if args[0].lower().endswith(".json") or os.path.exists(args[0]):
             vfs_path = os.path.abspath(args[0])
             if len(args) >= 2:
                 script_path = os.path.abspath(args[1])
         else:
-
             vfs_path = os.path.abspath(args[0]) if args[0] else None
             if len(args) >= 2:
                 script_path = os.path.abspath(args[1])
+
 
     load_err = None
     if vfs_path:
@@ -317,6 +329,7 @@ def main():
     else:
         create_default_vfs()
 
+    # GUI
     root = Tk()
     root.title("Эмулятор VFS")
 
@@ -355,7 +368,6 @@ def main():
         append_output("Стартовый скрипт завершён. Перейти в интерактивный режим.")
 
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()

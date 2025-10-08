@@ -1,0 +1,15 @@
+{
+  "type":"dir",
+  "entries": {
+    "level1": {"type":"dir","entries": {
+      "level2": {"type":"dir","entries": {
+        "level3": {"type":"dir","entries": {
+          "Measurehead.txt": {"type":"file","content":"Every school of thought is like a disco where people come to dance\n"}
+        }},
+        "file2.txt": {"type":"file","content":"file2"}
+      }},
+      "file3.txt":{"type":"file","content":"file3"}
+    }},
+    "rootfile.txt":{"type":"file","content":"root"}
+  }
+}

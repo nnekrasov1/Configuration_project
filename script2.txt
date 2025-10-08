@@ -1,0 +1,3 @@
+ls
+cd no_such_folder
+pwd

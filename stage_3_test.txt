@@ -1,0 +1,21 @@
+vfsinfo
+ls
+pwd
+ls level1
+cd level1
+pwd
+ls
+cd level2
+pwd
+ls
+cd level3
+pwd
+ls
+cat Measurehead.txt
+cd
+pwd
+cd not_exist
+ls
+cat not_exist.txt
+cd
+pwd

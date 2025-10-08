@@ -1,0 +1,10 @@
+{
+  "type": "dir",
+  "entries": {
+    "a.txt": {"type":"file","content":"A\n"},
+    "b.txt": {"type":"file","content":"B\n"},
+    "docs": {"type":"dir","entries": {
+      "readme.md": {"type":"file","content":"Docs readme"}
+    }}
+  }
+}

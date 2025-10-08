@@ -1,0 +1,9 @@
+{
+  "type": "dir",
+  "entries": {
+    "hello.txt": {
+      "type": "file",
+      "content": "Hello from minimal VFS\n"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+help
+ls
+touch newfile.txt
+ls
+cat newfile.txt
+wc newfile.txt
+rev newfile.txt
+du newfile.txt
+cd level1
+touch inside.txt
+ls
+du
+cat inside.txt
+cd
+touch root2.txt
+ls
+du
+
+touch level1
+cd no_such_folder
+cat nofile.txt

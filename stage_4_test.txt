@@ -1,0 +1,23 @@
+vfsinfo
+ls
+pwd
+cd level1
+ls
+cd level2
+ls
+cd level3
+ls
+cat Measurehead.txt
+wc Measurehead.txt
+rev Measurehead.txt
+du Measurehead.txt
+cd
+du
+wc rootfile.txt
+rev rootfile.txt
+du rootfile.txt
+
+wc notexist.txt
+rev notexist.txt
+du notexist
+cd notexist
